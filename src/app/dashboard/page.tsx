@@ -10,7 +10,7 @@ export default async function DashboardPage() {
 
   // Self heal accounts created before the signup trigger existed.
   if (!workspace) {
-    await supabase.rpc("ensure_workspace");
+    await supabase.rpc("flowcopy_ensure_workspace");
     ({ data: workspace } = await supabase.from("workspaces").select("id, name, organization_id").limit(1).maybeSingle());
   }
   const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", auth.user!.id).maybeSingle();

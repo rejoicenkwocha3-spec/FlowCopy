@@ -2,7 +2,7 @@
 
 create extension if not exists pgcrypto;
 
-create or replace function public.set_updated_at() returns trigger
+create or replace function public.flowcopy_set_updated_at() returns trigger
 language plpgsql as $$
 begin new.updated_at = now(); return new; end $$;
 
@@ -53,13 +53,13 @@ create table if not exists public.workspace_members (
 );
 create index if not exists workspace_members_user_idx on public.workspace_members(user_id);
 
-create trigger profiles_updated before update on public.profiles for each row execute function public.set_updated_at();
-create trigger organizations_updated before update on public.organizations for each row execute function public.set_updated_at();
-create trigger workspaces_updated before update on public.workspaces for each row execute function public.set_updated_at();
+create trigger profiles_updated before update on public.profiles for each row execute function public.flowcopy_set_updated_at();
+create trigger organizations_updated before update on public.organizations for each row execute function public.flowcopy_set_updated_at();
+create trigger workspaces_updated before update on public.workspaces for each row execute function public.flowcopy_set_updated_at();
 
 -- Bootstrap ----------------------------------------------------------------
 -- Creates profile, organization, workspace and memberships for one user. Idempotent.
-create or replace function public.bootstrap_user(p_user uuid, p_email text, p_name text)
+create or replace function public.flowcopy_bootstrap_user(p_user uuid, p_email text, p_name text)
 returns void language plpgsql security definer set search_path = public as $$
 declare
   v_org uuid;
@@ -91,47 +91,47 @@ begin
   insert into public.workspace_members (workspace_id, user_id, role) values (v_ws, p_user, 'owner');
 end $$;
 
-create or replace function public.handle_new_user() returns trigger
+create or replace function public.flowcopy_handle_new_user() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
-  perform public.bootstrap_user(new.id, new.email, new.raw_user_meta_data ->> 'full_name');
+  perform public.flowcopy_bootstrap_user(new.id, new.email, new.raw_user_meta_data ->> 'full_name');
   return new;
 end $$;
 
-drop trigger if exists on_auth_user_created on auth.users;
-create trigger on_auth_user_created after insert on auth.users
-  for each row execute function public.handle_new_user();
+drop trigger if exists flowcopy_on_auth_user_created on auth.users;
+create trigger flowcopy_on_auth_user_created after insert on auth.users
+  for each row execute function public.flowcopy_handle_new_user();
 
 -- Self heal for accounts that predate the trigger.
-create or replace function public.ensure_workspace() returns void
+create or replace function public.flowcopy_ensure_workspace() returns void
 language plpgsql security definer set search_path = public as $$
 declare u auth.users;
 begin
   select * into u from auth.users where id = auth.uid();
   if u.id is null then return; end if;
-  perform public.bootstrap_user(u.id, u.email, u.raw_user_meta_data ->> 'full_name');
+  perform public.flowcopy_bootstrap_user(u.id, u.email, u.raw_user_meta_data ->> 'full_name');
 end $$;
 
-revoke all on function public.bootstrap_user(uuid, text, text) from public, anon, authenticated;
-revoke all on function public.handle_new_user() from public, anon, authenticated;
-revoke all on function public.ensure_workspace() from public, anon;
-grant execute on function public.ensure_workspace() to authenticated;
+revoke all on function public.flowcopy_bootstrap_user(uuid, text, text) from public, anon, authenticated;
+revoke all on function public.flowcopy_handle_new_user() from public, anon, authenticated;
+revoke all on function public.flowcopy_ensure_workspace() from public, anon;
+grant execute on function public.flowcopy_ensure_workspace() to authenticated;
 
 -- Membership helpers (security definer avoids recursive RLS) ---------------
-create or replace function public.is_org_member(p_org uuid) returns boolean
+create or replace function public.flowcopy_is_org_member(p_org uuid) returns boolean
 language sql stable security definer set search_path = public as $$
   select exists (select 1 from public.organization_members where organization_id = p_org and user_id = auth.uid());
 $$;
-create or replace function public.is_org_admin(p_org uuid) returns boolean
+create or replace function public.flowcopy_is_org_admin(p_org uuid) returns boolean
 language sql stable security definer set search_path = public as $$
   select exists (select 1 from public.organization_members
     where organization_id = p_org and user_id = auth.uid() and role in ('owner','admin'));
 $$;
-create or replace function public.is_workspace_member(p_ws uuid) returns boolean
+create or replace function public.flowcopy_is_workspace_member(p_ws uuid) returns boolean
 language sql stable security definer set search_path = public as $$
   select exists (select 1 from public.workspace_members where workspace_id = p_ws and user_id = auth.uid());
 $$;
-grant execute on function public.is_org_member(uuid), public.is_org_admin(uuid), public.is_workspace_member(uuid) to authenticated;
+grant execute on function public.flowcopy_is_org_member(uuid), public.flowcopy_is_org_admin(uuid), public.flowcopy_is_workspace_member(uuid) to authenticated;
 
 -- Row Level Security -------------------------------------------------------
 alter table public.profiles enable row level security;
@@ -144,18 +144,18 @@ create policy profiles_select_own on public.profiles for select to authenticated
 create policy profiles_update_own on public.profiles for update to authenticated
   using (id = auth.uid()) with check (id = auth.uid());
 
-create policy orgs_select_member on public.organizations for select to authenticated using (public.is_org_member(id));
+create policy orgs_select_member on public.organizations for select to authenticated using (public.flowcopy_is_org_member(id));
 create policy orgs_update_admin on public.organizations for update to authenticated
-  using (public.is_org_admin(id)) with check (public.is_org_admin(id));
+  using (public.flowcopy_is_org_admin(id)) with check (public.flowcopy_is_org_admin(id));
 
 create policy org_members_select on public.organization_members for select to authenticated
-  using (user_id = auth.uid() or public.is_org_member(organization_id));
+  using (user_id = auth.uid() or public.flowcopy_is_org_member(organization_id));
 
-create policy workspaces_select_member on public.workspaces for select to authenticated using (public.is_workspace_member(id));
+create policy workspaces_select_member on public.workspaces for select to authenticated using (public.flowcopy_is_workspace_member(id));
 create policy workspaces_update_admin on public.workspaces for update to authenticated
-  using (public.is_org_admin(organization_id)) with check (public.is_org_admin(organization_id));
+  using (public.flowcopy_is_org_admin(organization_id)) with check (public.flowcopy_is_org_admin(organization_id));
 
 create policy ws_members_select on public.workspace_members for select to authenticated
-  using (user_id = auth.uid() or public.is_workspace_member(workspace_id));
+  using (user_id = auth.uid() or public.flowcopy_is_workspace_member(workspace_id));
 
 -- No insert/delete policies on membership tables: changes go through server side functions only.
