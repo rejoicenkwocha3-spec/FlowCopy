@@ -6,14 +6,14 @@ export const metadata: Metadata = { title: "Overview" };
 export default async function DashboardPage() {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
-  let { data: workspace } = await supabase.from("workspaces").select("id, name, organization_id").limit(1).maybeSingle();
+  let { data: workspace } = await supabase.from("fc_workspaces").select("id, name, organization_id").limit(1).maybeSingle();
 
   // Self heal accounts created before the signup trigger existed.
   if (!workspace) {
     await supabase.rpc("flowcopy_ensure_workspace");
-    ({ data: workspace } = await supabase.from("workspaces").select("id, name, organization_id").limit(1).maybeSingle());
+    ({ data: workspace } = await supabase.from("fc_workspaces").select("id, name, organization_id").limit(1).maybeSingle());
   }
-  const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", auth.user!.id).maybeSingle();
+  const { data: profile } = await supabase.from("fc_profiles").select("full_name").eq("id", auth.user!.id).maybeSingle();
   const first = (profile?.full_name ?? "").split(" ")[0];
 
   return (

@@ -13,7 +13,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const { data } = await supabase.auth.getUser();
   if (!data.user) redirect("/login");
 
-  const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", data.user.id).maybeSingle();
+  const { data: profile } = await supabase.from("fc_profiles").select("full_name").eq("id", data.user.id).maybeSingle();
 
   return (
     <div className="min-h-screen bg-surface">
