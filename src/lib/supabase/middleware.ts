@@ -6,7 +6,7 @@ const PROTECTED = ["/dashboard"];
 const AUTH_PAGES = ["/login", "/signup", "/forgot-password"];
 
 export async function updateSession(request: NextRequest) {
-  let response = NextResponse.next({ request });
+  const response = NextResponse.next({ request });
   const path = request.nextUrl.pathname;
   const env = getSupabaseEnv();
   const isProtected = PROTECTED.some((p) => path === p || path.startsWith(p + "/"));
@@ -21,6 +21,28 @@ export async function updateSession(request: NextRequest) {
     return response;
   }
 
+  try {
+    return await run(request, env, response, path, isProtected);
+  } catch {
+    // Never take the whole site down because auth could not be checked.
+    if (isProtected) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      url.search = "?error=not_configured";
+      return NextResponse.redirect(url);
+    }
+    return NextResponse.next({ request });
+  }
+}
+
+async function run(
+  request: NextRequest,
+  env: { url: string; anonKey: string },
+  initial: NextResponse,
+  path: string,
+  isProtected: boolean,
+) {
+  let response = initial;
   const sessionOnly = request.cookies.get("fc_remember")?.value === "0";
   const supabase = createServerClient(env.url, env.anonKey, {
     cookies: {
