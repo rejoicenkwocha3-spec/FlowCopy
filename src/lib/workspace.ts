@@ -7,11 +7,13 @@ export async function getCtx() {
   if (!data.user) throw new Error("You are signed out. Please sign in again.");
   const pick = () => supabase.from("fc_workspaces").select("id, name").limit(1).maybeSingle();
   let { data: ws } = await pick();
+  let detail = "";
   if (!ws) {
-    await supabase.rpc("flowcopy_ensure_workspace");
+    const { error } = await supabase.rpc("flowcopy_ensure_workspace");
+    if (error) detail = ` Database says: ${error.message}`;
     ({ data: ws } = await pick());
   }
-  if (!ws) throw new Error("Workspace not found.");
+  if (!ws) throw new Error(`Workspace not found for this account.${detail}`);
   return { supabase, user: data.user, workspaceId: ws.id as string, workspaceName: ws.name as string };
 }
 
