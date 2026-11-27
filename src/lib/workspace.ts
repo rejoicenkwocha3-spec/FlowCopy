@@ -13,8 +13,10 @@ export async function getCtx() {
     if (error) detail = ` Database says: ${error.message}`;
     ({ data: ws } = await pick());
   }
-  if (!ws) const host = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").replace(/^https?:\/\//, "").split(".")[0];
+  if (!ws) {
+    const host = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").replace(/^https?:\/\//, "").split(".")[0];
     throw new Error(`Workspace not found for this account. Site is connected to Supabase project "${host}".${detail}`);
+  }
   return { supabase, user: data.user, workspaceId: ws.id as string, workspaceName: ws.name as string };
 }
 
