@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getCtx } from "@/lib/workspace";
+import { pageCtx } from "@/lib/workspace";
 import { typeLabel } from "@/lib/content-types";
 import { Generator } from "./generator";
 import { ContentItem } from "./item";
@@ -7,7 +7,7 @@ import { ContentItem } from "./item";
 export const metadata: Metadata = { title: "Content" };
 
 export default async function ContentPage() {
-  const { supabase, workspaceId } = await getCtx();
+  const { supabase, workspaceId } = await pageCtx();
   const { data } = await supabase.from("fc_content").select("id, title, body, type, created_at").eq("workspace_id", workspaceId).order("created_at", { ascending: false }).limit(100);
   return (
     <div className="space-y-6">

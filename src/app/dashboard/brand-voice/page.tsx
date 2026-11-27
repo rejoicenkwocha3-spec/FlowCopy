@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { getCtx } from "@/lib/workspace";
+import { pageCtx } from "@/lib/workspace";
 import { BrandVoiceForm } from "./form";
 
 export const metadata: Metadata = { title: "Brand Voice" };
 
 export default async function BrandVoicePage() {
-  const { supabase, workspaceId } = await getCtx();
+  const { supabase, workspaceId } = await pageCtx();
   const { data } = await supabase.from("fc_brand_voices").select("name, tone, guidelines, avoid").eq("workspace_id", workspaceId).maybeSingle();
   return (
     <div className="space-y-6">

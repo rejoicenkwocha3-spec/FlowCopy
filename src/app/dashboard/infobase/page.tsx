@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import { Trash2 } from "lucide-react";
-import { getCtx } from "@/lib/workspace";
+import { pageCtx } from "@/lib/workspace";
 import { deleteInfobaseAction } from "../actions";
 import { InfobaseForm } from "./form";
 
 export const metadata: Metadata = { title: "Infobase" };
 
 export default async function InfobasePage() {
-  const { supabase, workspaceId } = await getCtx();
+  const { supabase, workspaceId } = await pageCtx();
   const { data } = await supabase.from("fc_infobase_items").select("id, title, content").eq("workspace_id", workspaceId).order("created_at", { ascending: false });
   return (
     <div className="space-y-6">

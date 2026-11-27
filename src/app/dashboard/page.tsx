@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Bot, BookOpen, FileText, Mic2, Workflow } from "lucide-react";
-import { getCtx } from "@/lib/workspace";
+import { pageCtx } from "@/lib/workspace";
 import { typeLabel } from "@/lib/content-types";
 
 export const metadata: Metadata = { title: "Overview" };
 
 export default async function DashboardPage() {
-  const { supabase, user, workspaceId, workspaceName } = await getCtx();
+  const { supabase, user, workspaceId, workspaceName } = await pageCtx();
   const count = async (t: string) => (await supabase.from(t).select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId)).count ?? 0;
   const [content, agents, workflows, facts, profile, recent, voice] = await Promise.all([
     count("fc_content"), count("fc_agents"), count("fc_workflows"), count("fc_infobase_items"),

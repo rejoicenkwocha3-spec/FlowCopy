@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
 export async function getCtx() {
@@ -33,4 +34,14 @@ export async function buildSystem(ctx: Ctx, role: string): Promise<string> {
   }
   if (facts?.length) parts.push("COMPANY KNOWLEDGE (use when relevant):\n" + facts.map((f) => `- ${f.title}: ${f.content}`).join("\n"));
   return parts.join("\n\n");
+}
+
+/** For pages: show a readable problem page instead of a crash. */
+export async function pageCtx() {
+  try {
+    return await getCtx();
+  } catch (e) {
+    const m = e instanceof Error ? e.message : "Unknown error";
+    redirect(`/dashboard/problem?m=${encodeURIComponent(m)}`);
+  }
 }

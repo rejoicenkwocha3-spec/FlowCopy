@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { getCtx } from "@/lib/workspace";
+import { pageCtx } from "@/lib/workspace";
 import { AgentCard, AgentForm } from "./client";
 
 export const metadata: Metadata = { title: "Agents" };
 
 export default async function AgentsPage() {
-  const { supabase, workspaceId } = await getCtx();
+  const { supabase, workspaceId } = await pageCtx();
   const { data } = await supabase.from("fc_agents").select("id, name, description").eq("workspace_id", workspaceId).order("created_at", { ascending: false });
   return (
     <div className="space-y-6">
