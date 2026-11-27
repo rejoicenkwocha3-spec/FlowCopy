@@ -12,7 +12,8 @@ import { Alert, Field, PasswordField, SubmitButton } from "@/components/auth-ui"
 const URL_ERRORS: Record<string, string> = {
   verify_failed: "That verification link is invalid or has expired. Log in or request a new link.",
   link_expired: "That reset link is invalid or has expired. Request a new one.",
-  not_configured: "Authentication is not configured yet. Add your Supabase URL and anon key to the environment.",
+  not_configured: "Supabase variables are missing in this deployment. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY (tick Production and Preview) in Vercel, then redeploy.",
+  auth_unreachable: "Supabase variables are set but could not be used. Check that the URL is the exact Project URL (https://xxxx.supabase.co) and the key is the anon/public key, with no quotes or spaces.",
 };
 
 export function LoginForm() {

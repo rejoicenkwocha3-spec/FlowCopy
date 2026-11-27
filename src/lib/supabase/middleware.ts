@@ -28,7 +28,7 @@ export async function updateSession(request: NextRequest) {
     if (isProtected) {
       const url = request.nextUrl.clone();
       url.pathname = "/login";
-      url.search = "?error=not_configured";
+      url.search = "?error=auth_unreachable";
       return NextResponse.redirect(url);
     }
     return NextResponse.next({ request });
